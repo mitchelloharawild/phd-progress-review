@@ -1645,6 +1645,37 @@ To keep the data small...
 
 ![](backgrounds/firosnv-photography-Rr3B0LH7W3k-unsplash.jpg){.image-right}
 
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Future work
+
+::: {.callout-note}
+
+## In this paper
+
+* Identify a suitable application dataset
+* Demonstrate pruning accuracy and efficiency
+:::
+
+::: {.callout-tip}
+
+## For future research
+
+* Investigate how pruning rules affect accuracy
+* Use multivariate pruning rules
+* Study how graph features impact reconciliation
+:::
+
+:::
+:::
+
+![](backgrounds/firosnv-photography-Rr3B0LH7W3k-unsplash.jpg){.image-right}
+
 ## {.fragment-remove}
 
 ::: columns
