@@ -1,0 +1,45 @@
+---
+format: gfm
+---
+
+<!-- README.md is generated from README.qmd. Please edit that file -->
+
+# PhD milestone presentation: progress review
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+Slides and notes for a PhD milestone presentation (28th February 2025) in Melbourne, Australia.
+
+#### Structure
+
+* Introduction and thesis topics overview (5 minutes)
+* In-depth presentation about graph pruning (20 minutes)
+  * Overview of time series reconciliation
+  * Three stages of coherent forecasting (Aggregation, Forecasting, Reconciliation)
+  * Coherent forecasting at scale
+  * Quality vs quantity in large scale hierarchies
+  * fpp3 demo exploration
+  * Graph pruning (a paradigm shift)
+  * Graph pruning details (dfs, features, aggregation)
+  * fpp3 pruning exploration
+  * Breadth and depth of information
+  * Planned application
+  * Future work
+  
+* Brief overview of other developed thesis topics, distributional into mixtime and ggtime (5 minutes)
+* Timeline of PhD progression and plans (5 minutes)
+
+### Format
+
+35 minute presentation, followed by 15 minutes Q&A discussion.
+
+
+progress:
+
+March: designed and implemented graph pruning algorithm
+May: distributional improvements (multivariate and vectorisation)
+July: ISF and useR! presentation
+October: designing and experimentation of mixtime and ggtime
+February: ggextenders ggtime presentation
+February: progress review

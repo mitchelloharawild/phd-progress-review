@@ -1,0 +1,2664 @@
+---
+from: markdown+emoji
+execute:
+  cache: true
+  keep-md: true
+resources:
+  - "resources"
+filters:
+  - custom-callouts
+format: 
+  letterbox-revealjs:
+    theme: custom.scss
+    css: [timeline.css]
+    progress: false
+    menu: false
+    width: 1280
+    height: 720
+    include-after-body: animate.html
+callout-appearance: simple
+bibliography: citations.bib
+---
+
+## {}
+
+::: columns
+::: {.column width="37.5%"}
+:::
+::: {.column width="60%"}
+
+::: {.title data-id="title"}
+PhD Milestone Presentation
+
+Progress Review
+:::
+
+::: {.dateplace}
+28th February 2025
+:::
+
+Mitchell O'Hara-Wild, Monash University
+
+::: {.smaller}
+Supervised by Rob Hyndman and George Athanasopolous
+:::
+
+::: {.callout-link}
+
+## Useful links
+
+![](resources/forum.svg){.icon} [social.mitchelloharawild.com](https://social.mitchelloharawild.com/)
+
+![](resources/projector-screen-outline.svg){.icon} [slides.mitchelloharawild.com/phd-progress-review](https://slides.mitchelloharawild.com/phd-progress-review)
+
+![](resources/github.svg){.icon} [mitchelloharawild/phd-progress-review](https://github.com/mitchelloharawild/phd-progress-review)
+
+:::
+
+:::
+:::
+
+![](backgrounds/emma-gossett-B645igbiKCw-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+### PhD thesis structure
+
+
+::: {.container .fragment .fade-up fragment-index=1}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/graphvec.svg)
+:::
+::: {.timeline-content}
+**Graph coherency constraints**
+
+::: {.timeline-details .fragment .fade-out fragment-index=2}
+
+Graphs flexibly describe cross-sectional relationships between time series.
+
+:::
+::: {.timeline-date}
+Topic 1
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=2}
+::: {.timeline-icon}
+![](resources/scissors.png)
+:::
+::: {.timeline-content .fragment .custom .highlight fragment-index=8}
+**Pruning data with graphs**
+  
+::: {.timeline-details .fragment .fade-out fragment-index=4}
+Pruning graphs to remove uninformative time series can both improve forecasting accuracy and computation time.
+:::
+::: {.timeline-date}
+Topic 2
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=4}
+::: {.timeline-icon}
+![](resources/crystal-ball.png)
+:::
+::: {.timeline-content}
+**Representing probabilistic forecasts**
+
+::: {.timeline-details .fragment .fade-out fragment-index=5}
+Vectorised distributions for use in a tidy forecasting workflow to adequately describe forecast uncertainty.
+
+:::
+::: {.timeline-date}
+Topic 3
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=5}
+::: {.timeline-icon}
+![](resources/clock.png)
+:::
+::: {.timeline-content}
+**Temporal coherency constraints**
+
+::: {.timeline-details .fragment .fade-out fragment-index=6}
+Representing time with varied temporal granularities in a tidy time series data structure.
+:::
+::: {.timeline-date}
+Topic 4
+:::
+:::
+:::
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=6}
+::: {.timeline-icon}
+![](resources/calendar.png)
+:::
+::: {.timeline-content}
+**Grammar of temporal graphics**
+
+::: {.timeline-details .fragment .fade-out fragment-index=7}
+Extends the grammar of graphics to support calendar-based temporal visualisation.
+:::
+::: {.timeline-date}
+Topic 5
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=7}
+::: {.timeline-icon}
+![](resources/fable.png)
+:::
+::: {.timeline-content}
+**Tidy forecasting framework**
+
+::: {.timeline-details .fragment .fade-out fragment-index=8}
+Implements the research topics above within a tidy forecasting workflow.
+:::
+::: {.timeline-date}
+Topic 6
+:::
+:::
+:::
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+```{r}
+#| include: false
+library(tidyverse)
+library(ggplot2)
+library(visNetwork)
+library(tidygraph)
+library(graphvec)
+library(fpp3)
+options(width = 75)
+
+visnetwork_hierarchy <- function(data, ...) {
+  nodes <- as_tibble(mutate(activate(data, "nodes"), id = row_number(), level = node_distance_from(node_is_root())))
+  edges <- as_tibble(activate(data, "edges"))
+  graph <- visNetwork(nodes, edges, ...) |> 
+    visHierarchicalLayout(direction = "UD", shakeTowards = "leaves") |> 
+    visOptions(
+      highlightNearest = list(enabled = TRUE, degree = list(from = 50000, to = 0), hover = FALSE, algorithm = "hierarchical"), 
+      collapse = list(enabled = TRUE, fit = FALSE, resetHighlight = TRUE, keepCoord = TRUE,
+                      clusterOptions = list(fixed = TRUE, physics = TRUE))
+    ) |> 
+    visEdges(scaling = list(label = list(enabled = FALSE)), arrows = "to") |> 
+    visNodes(font = list(size = 16))
+  
+  graph$x$tree <- list(updateShape = TRUE, shapeVar = "dot", shapeY = "square")
+  graph
+}
+visnetwork_graph <- function(data, layout = "layout_nicely", ...) {
+  nodes <- as_tibble(mutate(activate(data, "nodes"), id = row_number()))
+  edges <- as_tibble(activate(data, "edges"))
+  graph <- visNetwork(nodes, edges, ...) |> 
+    visIgraphLayout(layout = layout, randomSeed = 123091238) |> 
+    visOptions(
+      highlightNearest = list(enabled = TRUE, degree = list(from = 50000, to = 0), hover = FALSE)
+    ) |> 
+    visEdges(width = 3, scaling = list(label = list(enabled = FALSE)), arrows = "to") |> 
+    visNodes(size = 20)
+  
+  graph$x$tree <- list(updateShape = TRUE, shapeVar = "dot", shapeY = "square")
+  graph
+}
+```
+
+```{r data}
+#| cache: true
+fpp3_complete_ts <- readr::read_csv("fpp3_complete_raw.csv") |>
+  rename(screenPageViews = pageviews, activeUsers = users) |> 
+  # Fill all structurally valid interactions to complete the bottom level series
+  complete(date, deviceCategory, nesting(continent, subContinent, country), fill = list(screenPageViews = 0, activeUsers = 0)) |>
+  group_by(date, deviceCategory, continent, subContinent, country) |> 
+  summarise(
+    screenPageViews = sum(screenPageViews),
+    activeUsers = sum(activeUsers),
+    .groups = "drop"
+  ) |> 
+  as_tsibble(index = date, key = c(deviceCategory, continent, subContinent, country)) |>
+  fill_gaps(screenPageViews = 0, activeUsers = 0, .full = TRUE)
+fpp3_complete_agg_ts <- fpp3_complete_ts |>
+  aggregate_key(
+    deviceCategory*(continent/subContinent/country),
+    screenPageViews = sum(screenPageViews),
+    activeUsers = sum(activeUsers)
+  )
+rm(fpp3_complete_ts)
+```
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+### Forecast reconciliation
+
+Reconciliation adjusts forecasts to satisfy coherency constraints.
+
+This process generally improves forecasting accuracy, by sharing info between series.
+
+::: {.fragment .fade-up}
+::: {.callout-note}
+## Coherent forecasting
+
+Coherent forecasts are produced in three steps:
+
+1. Aggregating coherent data
+
+2. Producing base forecasts
+
+3. Reconciling base forecasts
+
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/eilis-garvey-MskbR8VLNrA-unsplash.jpg){.image-right}
+
+
+
+
+## {.fragment-remove}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Aggregating coherent data
+
+Combinations of **cross-sectional dimensions** at specific **temporal granularities** are used to aggregate time series datasets.
+
+This aggregation usually starts from a set of 'bottom' level time series.
+
+::: {.fragment .fade-out fragment-index=1}
+
+For example, Australian tourism:
+
+```{r}
+#| echo: true
+library(fpp3)
+tourism
+```
+
+:::
+
+::: {.fragment .fade-up fragment-index=1}
+::: {.callout-note}
+## The most disaggregated data
+
+Almost all time series used in coherent forecasting is sourced from databases of **events or transactions**.
+
+These timestamped entries are pre-aggregated into time series over some dimensions at a chosen granularity.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/sander-weeteling-KABfjuSOx74-unsplash.jpg){.image-left}
+
+
+## {}
+
+### Aggregating coherent data
+
+Related time series can be aggregated in three ways:
+
+<!-- ::: {.sticker-float-right} -->
+<!-- ![](resources/isf2023.png) -->
+<!-- ::: -->
+
+::: columns
+
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 📚 Hierarchical
+
+One path from top to bottom.
+
+```{dot}
+//| fig-height: 3
+//| fig-width: 4
+digraph G {
+
+  rankdir = TD;
+  splines = line;
+  subgraph cluster_1 {
+    style = dashed;
+    color = grey60;
+    AX;
+    AY;
+    BX;
+    BY;
+    label = Bottom;
+  }
+
+  subgraph cluster_0 {
+    style = dashed;
+    color = grey60;
+    Total -> A;
+    Total -> B;
+    A -> AX;
+    A -> AY;
+    B -> BX;
+    B -> BY;
+    label = Upper;
+  }
+}
+```
+:::
+:::
+
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 📚 Grouped
+
+Many paths from top to bottom.
+
+```{dot}
+//| fig-height: 3
+//| fig-width: 4
+digraph G {
+  rankdir = TD;
+  splines = line;
+  
+  subgraph cluster_0 {
+    style = dashed;
+    color = grey60;
+    BY;
+    BX;
+    AY;
+    AX;
+    label = Bottom;
+  }
+  subgraph cluster_1 {
+    style = dashed;
+    color = grey60;
+    Total;
+    label = Top;
+  }
+  subgraph cluster_2 {
+    style = dashed;
+    color = grey60;
+    A;
+    B;
+    label = "Path AB";
+  }
+  subgraph cluster_3 {
+    style = dashed;
+    color = grey60;
+    X;
+    Y;
+    label = "Path XY";
+  }
+  
+  Total -> X [style=dashed];
+  Total -> Y [style=dashed];
+  X -> AX [style=dashed];
+  X -> BX [style=dashed];
+  Y -> AY [style=dashed];
+  Y -> BY [style=dashed];
+  Total -> A;
+  Total -> B;
+  A -> AX;
+  A -> AY;
+  B -> BX;
+  B -> BY;
+}
+```
+
+:::
+:::
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 💡 Graph (topic 1)
+
+Many paths from (many) top to (many) bottom series.
+
+```{dot}
+//| fig-height: 3
+//| fig-width: 4
+digraph G {
+
+  rankdir = TD;
+  splines = line;
+  subgraph cluster_1 {
+    style = dashed;
+    color = grey60;
+    X2;
+    X1;
+    Y;
+    label = "Unconstrained XY";
+  }
+  subgraph cluster_2 {
+    style = dashed;
+    color = grey60;
+    B2;
+    B1;
+    A3;
+    A2;
+    A1;
+    label = "Unconstrained AB";
+  }
+
+  subgraph cluster_0 {
+    style = dashed;
+    color = grey60;
+    Total;
+    X;
+    A;
+    B;
+    
+    Total -> A;
+    Total -> B;
+    A -> A1;
+    A -> A2;
+    A -> A3;
+    B -> B1;
+    B -> B2;
+    Total -> X [style=dashed];
+    Total -> Y [style=dashed];
+    X -> X1 [style=dashed];
+    X -> X2 [style=dashed];
+    label = Constrained;
+  }
+  
+}
+```
+:::
+:::
+
+:::
+
+
+
+## {}
+
+### Aggregating coherent data
+
+The total time series in a coherent dataset varies by aggregation method.
+
+::: columns
+
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 📚 Hierarchical
+
+$$\sum_{k=1}^{n} \left( \prod_{i = 1}^k l_i \right)$$
+
+where,
+
+* $n$ is the number dimensions,
+* $l_i$ is the average number of levels in dimension $i$.
+
+
+:::
+:::
+
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 📚 Grouped
+
+$$\sum_{k=1}^{n} \left( \sum_{\substack{S \subseteq \{1, \dots, n\}, \\ |S| = k}} \left( \prod_{i \in S} l_i \right) \right)$$
+
+
+where,
+
+* $n$ is the number dimensions,
+* $l_i$ is the number of levels in dimension $i$.
+
+:::
+:::
+::: {.column width="33%"}
+::: {.callout-note icon=false}
+## 💡 Graph (topic 1)
+
+$$
+N_i = 1 + \sum_{j\in C(i)} N_j
+$$
+
+where,
+
+* $C(i) = \{ j \in V \mid (i, j) \in E \}$  is the children of node $i$.
+:::
+:::
+
+:::
+
+## {.fragment-remove}
+
+### Aggregating coherent data
+
+The dimensionality increases exponentially with each additional dimension.
+
+::: {.fragment .fade-out fragment-index=1}
+```{r}
+library(dplyr)
+library(gt)
+total_hierarchical_series <- function(n_levels, depth = length(n_levels)) {
+  sum(vapply(0:depth, function(k) prod(n_levels[seq_len(k)]), numeric(1L)))
+  # this might not be quite right, verify it.
+}
+
+total_grouped_series <- function(n_levels, depth = length(n_levels)) {
+  if(length(n_levels) == 1L) return(1 + n_levels)
+  1 + sum(vapply(seq_len(depth), function(k) sum(combn(n_levels, k, FUN = prod)), numeric(1L)))
+}
+tribble(
+  ~ Dimension, ~`Levels`, ~ `$l_i$`,
+  "Total", "", 0,
+  "Warehouse", "Apex, Titan, ...", 83,
+  "Packaging", "Letter, Pouch, Box, ...", 5,
+  "Weight", "Light, Medium, Heavy", 3,
+  "Size", "Small, Medium, Large", 3,
+  "Transport", "Air, Land, Sea", 3,
+  # "Origin", 180,
+  # "Destination", 180,
+  "Dangerous goods", "Explosive, Radioactive, ...", 9,
+  "Class", "Regular, Expedited, ...", 5,
+  "Payment type", "Credit, Cheque, Transfer, ...", 4,
+  "VMI type", "Basic, Collaborative, Advanced, ...", 4
+) |> 
+  mutate(
+    `Total series` = vapply(seq_len(n()), \(x) total_grouped_series(`$l_i$`[seq_len(x)]), double(1L)),
+    `New series` = c(1, diff(`Total series`))
+  ) |> 
+  relocate(`Total series`, .after = `New series`) |> 
+  gt() |> 
+  cols_label(`$l_i$` = md("Levels")) |> 
+  fmt_number(decimals = 0) |> 
+  tab_header(title = "The number of time series in a hypothetical large-scale global supply chain dataset.") 
+```
+:::
+
+::: {.fragment .fade-up fragment-index=1}
+---
+
+Each dimension adds useful information, which can
+
+* improve forecasting accuracy, and
+* support decision-making.
+
+This makes large-scale forecasting commonplace.
+
+As many relevent dimensions as possible are used.
+:::
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Producing base forecasts
+
+Coherent collections of time series contain many diverse patterns. Base forecasting methods are almost always automated.
+
+::: {.fragment .fade-up}
+
+::: {.callout-tip}
+## Forecasting at scale
+
+Quickly and accurately forecasting large numbers of time series requires flexible but reliable models.
+
+Foundation forecasting models are currently used to **forecast billions of time series** in a few hours, while reproducing complex patterns.
+
+This allows more dimensions to be used in aggregation.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/sander-weeteling-KABfjuSOx74-unsplash.jpg){.image-left}
+
+
+
+## {}
+
+::: columns
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+
+### Reconciling base forecasts
+
+Optimal forecast reconciliation uses weighted least-squares (WLS) to adjust base forecasts to satisfy coherency constraints.
+
+Reconciliation weights are used to adjust each time series by different amounts, usually by their accuracy.
+
+::: {.fragment .fade-up}
+
+::: {.callout-tip}
+## Reconciling at scale
+
+Coherency constraints in large aggregations are very sparse, so sparse matrix algebra is commonly used for large-scale reconciliation problems.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/sander-weeteling-KABfjuSOx74-unsplash.jpg){.image-left}
+
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Quality vs quantity
+
+The quality of information in coherent datasets varies with disaggregation depth.
+
+* Aggregated data has clear, strong patterns.
+
+* Disaggregations are intermittent and noisy.
+
+::: {.fragment .fade-up}
+---
+
+Large hierarchies across many disaggregating dimensions have an excessive number of *deeply disaggregated time series*.
+
+::: {.callout-caution}
+## Model misspecification at scale
+
+Deeply disaggregated series are difficult to accurately forecast, and can worsen forecast reconciliation.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/arno-senoner-ynvV5b4zZM0-unsplash.jpg){.image-right}
+
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Forecasting textbook pageviews
+
+To demonstrate this, we will look at Google Analytics event data for `otexts.org`.
+
+::: {.callout-note}
+## Data overview
+
+The data has been pre-aggregated into:
+
+* Daily page views since 1 January 2020
+* Disaggregated by *many* dimensions, such as:
+
+  (e.g. location, device, returning visit, web page, ...)
+
+:::
+
+<!-- ::: {.fragment .fade-in} -->
+<!-- ::: {.callout-warning} -->
+<!-- ## Illustrative example -->
+
+<!-- I'll gloss over *many* details specific to forecasting this data (I promise it's not interesting or important)! -->
+
+<!-- Many time series are comprised of events that are aggregated over most dimensions to produce a small number of interesting time series. Some common examples include retail sales, flights, bike share hire, taxi trips. -->
+
+<!-- This data will illustrate how coherent pruning is useful for forecast reconciliation - far more interesting! -->
+
+
+<!-- ::: -->
+<!-- ::: -->
+
+
+:::
+:::
+
+![](backgrounds/fpp3_front_cover.jpg){.image-right}
+
+
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*(continent/subContinent/country)
+:::
+
+::: {.hierarchy-plot}
+```{r fpp-total}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    if_all(c(deviceCategory, continent, subContinent, country), is_aggregated)
+  ) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars("Total"), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total"),
+    color = c("grey70")
+  ),
+  edges = tibble(from = numeric(), to = numeric())
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/subContinent/country)
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    !is_aggregated(continent),
+    if_all(c(deviceCategory, subContinent, country), is_aggregated)
+  ) |>
+  group_by(continent) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+
+nodes_continent <- as.character(unique(plot_data$continent))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent),
+    color = c("grey70", rep("#084887", length(nodes_continent)))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent))),
+    to = c(2:7)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/country)
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    continent == "Europe",
+    !is_aggregated(subContinent),
+    if_all(c(deviceCategory, country), is_aggregated)
+  ) |>
+  group_by(continent, subContinent) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+
+nodes_subContinent <- as.character(unique(plot_data$subContinent))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent))),
+    to = c(2:7, 8:11)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/[country]{style="color: #fbb13c;"})
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    subContinent == "Western Europe",
+    !is_aggregated(country),
+    if_all(c(deviceCategory), is_aggregated)
+  ) |>
+  group_by(continent, subContinent, country) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent, country), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+nodes_country <- as.character(unique(plot_data$country))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent, nodes_country),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)), rep("#fbb13c", length(nodes_country)))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent)), rep(11, length(nodes_country))),
+    to = c(2:7, 8:11, 12:20)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+[deviceCategory]{style="color: #B388EB;"}\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/[country]{style="color: #fbb13c;"})
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    country == "France",
+    !is_aggregated(deviceCategory)
+  ) |>
+  group_by(continent, subContinent, country, deviceCategory) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent, country, deviceCategory), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+nodes_device <- as.character(unique(plot_data$deviceCategory))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent, nodes_country, nodes_device),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)), rep("#fbb13c", length(nodes_country)), rep("#B388EB", length(nodes_device)))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent)), rep(11, length(nodes_country)), rep(14, length(nodes_device))),
+    to = c(2:7, 8:11, 12:20, 21:23)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+
+```
+:::
+
+:::
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### 💡 Idea: graph pruning
+
+Many time series aren't interesting or useful.
+
+::: {.fragment .fade-in}
+::: {.callout-tip}
+## Simply don't forecast them!
+
+Removing uninformative series has many benefits:
+
+* ✅ Less computation time
+* ✅ Less model misspecification
+* ✅ Better forecast accuracy
+
+:::
+:::
+
+::: {.fragment .fade-in}
+::: {.callout-note}
+## From grouped to graph
+
+This is made possible with **graph reconciliation**.
+
+Simply removing series breaks the coherency structure. 
+
+We also must remove the relevant coherency constraints.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/pexels-shvetsa-5231048.jpg){.image-right}
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### 💡 Idea: graph pruning
+
+::: {.callout-important}
+## Maintaining coherency
+
+To maintain coherency, the decision at each disaggregation is **all or nothing**.
+
+Even if a series is unwanted, it can't be removed if other useful series are used in the same disaggregation.
+
+There are two fundamental decisions involved in pruning:
+
+1. The **predicate**: the test for 'forecastability'.
+2. The **pruning rule**: a function that decides if the set of disaggregates are kept.
+:::
+
+:::
+:::
+
+![](backgrounds/pexels-shvetsa-5231048.jpg){.image-right}
+
+## {.fragment-remove}
+
+### Graph pruning coherent data
+
+Graph pruning reduces dimensionality growth of each additional dimension.
+
+Pruning in this example uses the pruning rule of `node_depth <= 3`.
+
+```{r}
+tribble(
+  ~ Dimension, ~`Levels`, ~ `$l_i$`,
+  "Total", "", 0,
+  "Warehouse", "Apex, Titan, ...", 83,
+  "Packaging", "Letter, Pouch, Box, ...", 5,
+  "Weight", "Light, Medium, Heavy", 3,
+  "Size", "Small, Medium, Large", 3,
+  "Transport", "Air, Land, Sea", 3,
+  # "Origin", 180,
+  # "Destination", 180,
+  "Dangerous goods", "Explosive, Radioactive, ...", 9,
+  "Class", "Regular, Expedited, ...", 5,
+  "Payment type", "Credit, Cheque, Transfer, ...", 4,
+  "VMI type", "Basic, Collaborative, Advanced, ...", 4
+) |> 
+  mutate(
+    `Pruned series` = vapply(seq_len(n()), \(x) total_grouped_series(`$l_i$`[seq_len(x)], depth = pmin(x, 3)), double(1L)),
+    `Total series` = vapply(seq_len(n()), \(x) total_grouped_series(`$l_i$`[seq_len(x)]), double(1L)),
+    `New series` = c(1, diff(`Pruned series`))
+  ) |> 
+  relocate(`New series`, .before = `Pruned series`) |> 
+  gt() |> 
+  cols_label(`$l_i$` = md("Levels")) |> 
+  fmt_number(decimals = 0) |> 
+  tab_header(title = "The number of time series in a hypothetical large-scale global supply chain dataset.") 
+```
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### The graph pruning procedure
+
+::: {.callout-note}
+## Automated graph pruning with features
+
+Starting from the top to bottom, we evaluate the 'forecastability' of each series with the **predicate**.
+
+This can be assessed automatically by using **features** of the time-series and graph, such as:
+
+* The average value (*scale*)
+* The number of zeroes (*intermittency*)
+* The strength of seasonality (*structure*)
+* The node depth (*disaggregation level*)
+* The node centrality (*influence*)
+
+If the disaggregated series satisfy the **disaggregation rule**, we disaggregate further.
+
+Repeat this through the graph until we reach completely uninteresting data, or the bottom series.
+:::
+
+:::
+:::
+
+![](backgrounds/pexels-shvetsa-5231048.jpg){.image-right}
+
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*(continent/subContinent/country)
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    if_all(c(deviceCategory, continent, subContinent, country), is_aggregated)
+  ) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars("Total"), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total"),
+    color = c("grey70"),
+    font.background = "lightgreen"
+  ),
+  edges = tibble(from = numeric(), to = numeric())
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/subContinent/country)
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    !is_aggregated(continent),
+    if_all(c(deviceCategory, subContinent, country), is_aggregated)
+  ) |>
+  group_by(continent) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+
+nodes_continent <- as.character(unique(plot_data$continent))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent),
+    color = c("grey70", rep("#084887", length(nodes_continent))),
+    font.background = c("lightgreen", "red", rep("lightgreen", 5))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent))),
+    to = c(2:7)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/country)
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    continent == "Europe",
+    !is_aggregated(subContinent),
+    if_all(c(deviceCategory, country), is_aggregated)
+  ) |>
+  group_by(continent, subContinent) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+
+nodes_subContinent <- as.character(unique(plot_data$subContinent))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent))),
+    font.background = c("lightgreen", "red", rep("lightgreen", 9))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent))),
+    to = c(2:7, 8:11)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+deviceCategory\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/[country]{style="color: #fbb13c;"})
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    subContinent == "Western Europe",
+    !is_aggregated(country),
+    if_all(c(deviceCategory), is_aggregated)
+  ) |>
+  group_by(continent, subContinent, country) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent, country), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+nodes_country <- as.character(unique(plot_data$country))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent, nodes_country),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)), rep("#fbb13c", length(nodes_country))),
+    font.background = c("lightgreen", "red", rep("lightgreen", 13), rep("red", 3), rep("lightgreen", 2))
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent)), rep(11, length(nodes_country))),
+    to = c(2:7, 8:11, 12:20)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+```
+:::
+:::
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+[deviceCategory]{style="color: #B388EB;"}\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/[country]{style="color: #fbb13c;"})
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    country == "France",
+    !is_aggregated(deviceCategory)
+  ) |>
+  group_by(continent, subContinent, country, deviceCategory) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent, country, deviceCategory), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+nodes_device <- as.character(unique(plot_data$deviceCategory))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent, nodes_country, nodes_device),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)), rep("#fbb13c", length(nodes_country)), rep("#B388EB", length(nodes_device))),
+    font.background = c("lightgreen", "red", rep("lightgreen", 13), rep("red", 3), rep("lightgreen", 3), "red", "red")
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent)), rep(11, length(nodes_country)), rep(14, length(nodes_device))),
+    to = c(2:7, 8:11, 12:20, 21:23)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+
+```
+:::
+
+:::
+
+
+## {}
+
+![](resources/fpp3.svg){.sticker-float-right}
+
+::: {.hierarchy-grid}
+
+::: {.hierarchy-symbolic}
+[deviceCategory]{style="color: #B388EB;"}\*([continent]{style="color: #084887;"}/[subContinent]{style="color: #8093f1;"}/[country]{style="color: #fbb13c;"})
+:::
+
+::: {.hierarchy-plot}
+```{r}
+#| fig-height: 7
+#| fig-width: 9
+plot_data <- fpp3_complete_agg_ts |>
+  filter(
+    country == "Germany",
+    !is_aggregated(deviceCategory)
+  ) |>
+  group_by(continent, subContinent, country, deviceCategory) |>
+  summarise(screenPageViews = sum(screenPageViews), activeUsers = sum(activeUsers), .groups = "drop")
+
+plot_data |>
+  ggplot(aes(x = date, y = activeUsers)) +
+  geom_line() +
+  facet_grid(vars(continent, subContinent, country, deviceCategory), scales = "free_y") +
+  guides(colour = "none") +
+  theme_minimal()
+nodes_device <- as.character(unique(plot_data$deviceCategory))
+```
+:::
+
+::: {.hierarchy-graph}
+```{r}
+#| echo: false
+#| output: hide
+
+tidygraph::tbl_graph(
+  nodes = tibble(
+    label = c("Total", nodes_continent, nodes_subContinent, nodes_country, nodes_device),
+    color = c("grey70", rep("#084887", length(nodes_continent)), rep("#8093f1", length(nodes_subContinent)), rep("#fbb13c", length(nodes_country)), rep("#B388EB", length(nodes_device))),
+    font.background = c("lightgreen", "red", rep("lightgreen", 13), rep("red", 3), rep("lightgreen", 3), "lightgreen", "red")
+  ),
+  edges = tibble(
+    from = c(rep(1, length(nodes_continent)), rep(6, length(nodes_subContinent)), rep(11, length(nodes_country)), rep(15, length(nodes_device))),
+    to = c(2:7, 8:11, 12:20, 21:23)
+  )
+) |>
+  visnetwork_hierarchy(width = 480, height = 650)
+
+```
+:::
+
+:::
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Pruning fpp3 page views
+
+::: {.callout-note}
+
+## The small example
+
+On this small example with structure:
+
+::: {style='font-family: monospace;'}
+deviceCategory\*(continent/subContinent/country)
+:::
+
+There were a total of **1305 time series**.
+:::
+
+
+::: {.callout-tip}
+## A simple pruning with...
+
+* **predicate**: average >10, <50% zeroes
+* **pruning rule**: >50% forecastable
+
+Was able to maintain coherent forecasting accuracy with **<50% of the data** (666 observations).
+:::
+
+:::
+:::
+
+![](backgrounds/firosnv-photography-Rr3B0LH7W3k-unsplash.jpg){.image-right}
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Pruning fpp3 page views
+
+::: {.callout-note}
+
+## 🌏 The big picture
+
+The raw event database has 100s of dimensions.
+
+This slightly larger aggregation structure:
+
+::: {style='font-family: monospace;'}
+operatingSystem\*browser\*language\*
+
+newVsReturning\*pageTitle\*deviceCategory\*
+
+(continent/country/city))
+:::
+
+has a total of... 🥁
+
+```{r}
+#| include: false
+otexts_dims <- c(operatingSystem = 18L, newVsReturning = 3L, pageTitle = 6020L, 
+language = 101L, deviceCategory = 4L, browser = 31L, continent = 6L, 
+country = 231L, city = 22670L)
+
+aggs <- fabletools:::parse_agg_spec(rlang::expr(operatingSystem*newVsReturning*pageTitle*language*deviceCategory*browser*(continent/country/city)))
+
+total_series <- function(x, depth=Inf) {
+  sum(vapply(x[lengths(x) <= depth], function(col) {
+    if("country" %in% col) col <- setdiff(col, "continent")
+    if("city" %in% col) col <- setdiff(col, "country")
+    prod(unlist(otexts_dims[col]))
+  }, numeric(1L)))
+}
+
+total_series(aggs)
+
+aggs_pruned <- fabletools:::parse_agg_spec(rlang::expr(pageTitle+operatingSystem*newVsReturning*language*deviceCategory*browser*(continent/country/city)))
+total_series(aggs_pruned, depth = 3)
+
+```
+
+
+:::{.fragment .fade-in}
+::: {.callout-important}
+[**171,076,181,621,760** series!]{style='font-size: 50px'}
+:::
+:::
+:::
+
+::: {.fragment .fade-in}
+::: {.callout-tip}
+## 🗑️ A simple pruning later...
+
+**208,984** useful time series, minimal loss of information.
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/firosnv-photography-Rr3B0LH7W3k-unsplash.jpg){.image-right}
+
+## {}
+
+### Pruning fpp3 page views
+
+Pruning rule: `node_depth <= 3`, no combinations with `pageTitle`.
+
+```{r}
+n_series <- function(x, prune = FALSE) {
+  if (prune && grepl("pageTitle", x, fixed = TRUE))
+    x <- paste0("pageTitle+", sub("pageTitle*", "", x, fixed = TRUE))
+  total_series(fabletools:::parse_agg_spec(rlang::parse_expr(x)), if (prune) 3 else Inf)
+}
+
+tribble(
+  ~ Aggregation,
+  "continent",
+  "continent/country",
+  "continent/country/city",
+  "browser*(continent/country/city)",
+  "deviceCategory*browser*(continent/country/city)",
+  "language*deviceCategory*browser*(continent/country/city)",
+  "pageTitle*language*deviceCategory*browser*(continent/country/city)",
+  "newVsReturning*pageTitle*language*deviceCategory*browser*(continent/country/city)",
+  "operatingSystem*newVsReturning*pageTitle*language*deviceCategory*browser*(continent/country/city)",
+) |> 
+  rowwise() |> 
+  mutate(`Total series` = n_series(Aggregation), `Pruned series` = n_series(Aggregation, TRUE)) |> 
+  gt() |> 
+  fmt_number(decimals = 0) |> 
+  tab_header(title = "The number of fpp3 pageview time series at increasingly large aggregation structures.") 
+
+
+```
+
+
+
+## {}
+
+::: columns
+::: {.column width="60%"}
+
+### Breadth vs Depth
+
+Graph pruning of coherent time series **solves big problems** with forecast reconcilation.
+
+::: {.callout-important}
+## Grouped constraints
+
+Since grouped constraints require a **common bottom series**, previously all disaggregates must be forecasted.
+
+To keep the data small...
+
+**useful dimensions had to be dropped** ❌
+:::
+
+::: {.fragment .fade-in}
+::: {.callout-tip}
+## Graph constraints
+
+With graph constraints, there can be any structure.
+
+To keep the data small...
+
+**useless series can be dropped!** ✅
+:::
+:::
+
+:::
+:::
+
+![](backgrounds/firosnv-photography-Rr3B0LH7W3k-unsplash.jpg){.image-right}
+
+## {.fragment-remove}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+### Other topic development
+
+
+::: {.container}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/graphvec.svg)
+:::
+::: {.timeline-content}
+**Graph coherency constraints**
+
+::: {.timeline-date}
+Topic 1
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/scissors.png)
+:::
+::: {.timeline-content}
+**Pruning data with graphs**
+
+::: {.timeline-date}
+Topic 2
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/crystal-ball.png)
+:::
+::: {.timeline-content .fragment .custom .highlight fragment-index=1}
+**Representing probabilistic forecasts**
+
+::: {.timeline-date}
+Topic 3
+:::
+:::
+:::
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/clock.png)
+:::
+::: {.timeline-content}
+**Temporal coherency constraints**
+
+::: {.timeline-date}
+Topic 4
+:::
+:::
+:::
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/calendar.png)
+:::
+::: {.timeline-content}
+**Grammar of temporal graphics**
+
+::: {.timeline-date}
+Topic 5
+:::
+:::
+:::
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/fable.png)
+:::
+::: {.timeline-content}
+**Tidy forecasting framework**
+
+::: {.timeline-date}
+Topic 6
+:::
+:::
+:::
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+### R's distribution functions
+
+The included distributions in R (and many extension packages) use p/d/q/r functions for statistical operations on distributions.
+
+::: {.callout-note}
+## The p/d/q/r functions
+
+These functions allow you to calculate statistical operations from distributions:
+
+* `p`: The 'probability' (CDF)
+* `d`: The 'density' (PDF)
+* `q`: The 'quantiles'
+* `r`: The 'random' samples
+
+For example: 
+
+`dnorm(c(0, 0.3, -0.2), mean = 2, sd = c(4,2))`
+:::
+
+
+:::
+:::
+
+![](backgrounds/aditya-chinchure-hyN9aU9Tm-c-unsplash.jpg){.image-right}
+
+
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+
+::: {.column width="60%"}
+### Vectorised distributions
+
+`{distributional}` vectorises distributions.
+```{r}
+#| echo: true
+library(distributional)
+dist_normal(mu = c(1, 3, -1, 2), sigma = c(3, 2, 4, 1))
+```
+
+Different distributions can share a vector.
+```{r}
+#| echo: true
+c(
+  dist_normal(mu = c(1, 3, -1, 2), sigma = c(3, 2, 4, 1)),
+  dist_gamma(2,1)
+)
+```
+
+:::
+:::
+
+![](backgrounds/ian-fajardo-jYg-bmeMotE-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+::: {.column width="40%"}
+:::
+
+::: {.column width="60%"}
+### Vectorised distributions
+
+This is useful for outputing and using probabilistic predictions. For example, forecasts from fable.
+
+```{r}
+#| include: false
+options(width = 100)
+```
+
+
+```{r}
+#| echo: true
+library(fable)
+as_tsibble(sunspot.year) |> 
+  model(ARIMA(value)) |> 
+  forecast(h = "10 years")
+```
+
+
+:::
+:::
+
+![](backgrounds/ian-fajardo-jYg-bmeMotE-unsplash.jpg){.image-left}
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+### Statistical computation
+
+The usual p/d/q/r distribution functions have more descriptive alternatives:
+
+* `p`->`cdf()`: The CDF
+* `d`->`density()`: The density (PDF)
+* `q`->`quantile()`: The quantile
+* `r`->`generate()`: Random samples 
+
+::: {.callout-tip}
+## Distributional operations
+
+These same functions are the same for any distribution.
+:::
+:::
+:::
+
+![](backgrounds/dustin-humes-9CWwJYvNJ4k-unsplash.jpg){.image-right}
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+### Statistical computation
+
+::: {.callout-tip}
+## Other operations
+
+There are many more statistics than p/d/q/r.
+
+* `log_likelihood()`/`likelihood()`
+* `hilo()`
+* `hdr()`
+* `support()`
+* `mean()`
+* `variance()`/`covariance()`
+* `skewness()`
+* `kurtosis()`
+:::
+
+:::
+:::
+
+![](backgrounds/dustin-humes-9CWwJYvNJ4k-unsplash.jpg){.image-right}
+
+
+
+## {}
+
+::: columns
+
+::: {.column width="60%"}
+### Vectorised operations
+
+Vectorised operations in distributional are safer than the p/d/q/r equivalents.
+
+::: {.callout-note}
+## Vectorising in two ways
+
+There are two types of operation arguments:
+
+* `vector`/`matrix` inputs
+
+  Vectorises across distributions, then arguments.
+  
+  This approach is **simpler**, especially single arguments.
+  
+* `list`/`data.frame` inputs
+
+  Vectorises across arguments, then distributions.
+  
+  This approach is **more flexible and powerful**.
+:::
+
+
+:::
+:::
+
+![](backgrounds/dustin-humes-9CWwJYvNJ4k-unsplash.jpg){.image-right}
+
+## {}
+
+::: columns
+
+
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+### Visualising distributions
+
+![](resources/ggdist.svg){.sticker-float-left}
+
+The [ggdist](https://mjskay.github.io/ggdist/) package by Matthew Kay extends [ggplot2](https://ggplot2.tidyverse.org/) with support for visualising distributions in many ways.
+
+It works directly with **distributional vectors**!
+
+![](resources/ggdist-preview.png)
+
+:::
+:::
+
+![](backgrounds/kasia-derenda-gckY9S3DxHg-unsplash.jpg){.image-left}
+
+
+## {.fragment-remove}
+
+::: columns
+::: {.column width="40%"}
+:::
+::: {.column width="60%"}
+### Other topic development
+
+
+::: {.container}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/graphvec.svg)
+:::
+::: {.timeline-content}
+**Graph coherency constraints**
+
+::: {.timeline-date}
+Topic 1
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/scissors.png)
+:::
+::: {.timeline-content}
+**Pruning data with graphs**
+
+::: {.timeline-date}
+Topic 2
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/crystal-ball.png)
+:::
+::: {.timeline-content}
+**Representing probabilistic forecasts**
+
+::: {.timeline-date}
+Topic 3
+:::
+:::
+:::
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/clock.png)
+:::
+::: {.timeline-content .fragment .custom .highlight fragment-index=1}
+**Temporal coherency constraints**
+
+::: {.timeline-date}
+Topic 4
+:::
+:::
+:::
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/calendar.png)
+:::
+::: {.timeline-content .fragment .custom .highlight fragment-index=1}
+**Grammar of temporal graphics**
+
+::: {.timeline-date}
+Topic 5
+:::
+:::
+:::
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/fable.png)
+:::
+::: {.timeline-content}
+**Tidy forecasting framework**
+
+::: {.timeline-date}
+Topic 6
+:::
+:::
+:::
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/chris-lee-70l1tDAI6rM-unsplash.jpg){.image-left}
+
+
+
+
+
+## {.fragment-remove}
+
+### PhD progression
+
+  <!-- ~ Chapter, ~ `Estimated completion`, ~ Task, ~ Progress, -->
+  <!-- "Topic 1: Reconciliation of structured time series forecasts with graphs", "June 2023", "Theory development", "100%", -->
+  <!-- "Topic 1: Reconciliation of structured time series forecasts with graphs", "June 2023", "ISF2023 Presentation", "100%", -->
+  <!-- "Topic 1: Reconciliation of structured time series forecasts with graphs", "February 2024", "Software development", "90%*", -->
+  <!-- "Topic 1: Reconciliation of structured time series forecasts with graphs", "March 2024", "Paper submission", "75%", -->
+  <!-- "Topic 2: Feature based graph pruning for improved forecast reconciliation", "May 2024", "Theory development", "60%", -->
+  <!-- "Topic 2: Feature based graph pruning for improved forecast reconciliation", "June 2024", "ISF2024 Presentation", "0%", -->
+  <!-- "Topic 2: Feature based graph pruning for improved forecast reconciliation", "June 2024", "Software development", "20%*", -->
+  <!-- "Topic 2: Feature based graph pruning for improved forecast reconciliation", "August 2024", "Paper submission", "0%", -->
+  <!-- "Topic 3: Statistical computing with vectorised operations on distributions", "April 2024", "Theory development", "90%", -->
+  <!-- "Topic 3: Statistical computing with vectorised operations on distributions", "July 2024", "useR! Presentation", "0%", -->
+  <!-- "Topic 3: Statistical computing with vectorised operations on distributions", "July 2024", "Software development", "80%*", -->
+  <!-- "Topic 3: Statistical computing with vectorised operations on distributions", "November 2024", "Paper submission", "0%", -->
+  <!-- "Topic 4: Reconciling mixed temporal granularities", "February 2025", "Theory development", "20%", -->
+  <!-- "Topic 4: Reconciling mixed temporal granularities", "June 2025", "ISF2025 Presentation", "0%", -->
+  <!-- "Topic 4: Reconciling mixed temporal granularities", "June 2025", "Software development", "10%*", -->
+  <!-- "Topic 4: Reconciling mixed temporal granularities", "August 2025", "Paper submission", "0%", -->
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "December 2025", "Theory development", "75%", -->
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Software development", "60%*", -->
+  <!-- # "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Paper submission", "0%", -->
+  <!-- "PhD Milestones", "February 2024", "Confirmation", "100%", -->
+  <!-- "PhD Milestones", "February 2025", "Mid-candidature review", "0%", -->
+  <!-- "PhD Milestones", "February 2026", "Final review", "0%", -->
+
+::: columns
+::: {.column width="60%"}
+
+::: {.container .fragment .fade-up fragment-index=1}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/temporal-graph-node.png)
+:::
+::: {.timeline-content}
+**Prototyped graph pruning concepts**
+
+::: {.timeline-date}
+Mar 2024
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/isf2024.png)
+:::
+::: {.timeline-content}
+**Presented graph coherency at ISF 2023**
+
+::: {.timeline-date}
+Jun 2023
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/monash.png)
+:::
+::: {.timeline-content}
+**Completed the coursework :mortar_board:**
+
+::: {.timeline-date}
+Nov 2023
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/graphvec.svg)
+:::
+::: {.timeline-content}
+**Created the graphvec package**
+
+::: {.timeline-date}
+Dec 2023
+:::
+:::
+:::
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/memo.png)
+:::
+::: {.timeline-content}
+**Draft of graph coherency paper**
+
+::: {.timeline-date}
+Feb 2024
+:::
+:::
+:::
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/monash.png)
+:::
+::: {.timeline-content}
+**Confirmation report and presentation**
+
+::: {.timeline-details}
+
+:::
+::: {.timeline-date}
+Feb 2024
+:::
+:::
+:::
+
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-right}
+
+
+## {.fragment-remove}
+
+### PhD progression (2024)
+
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "December 2025", "Theory development", "75%", -->
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Software development", "60%*", -->
+  <!-- # "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Paper submission", "0%", -->
+  <!-- "PhD Milestones", "February 2024", "Confirmation", "100%", -->
+  <!-- "PhD Milestones", "February 2025", "Mid-candidature review", "0%", -->
+  <!-- "PhD Milestones", "February 2026", "Final review", "0%", -->
+
+::: columns
+::: {.column width="60%"}
+
+::: {.container}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/scissors.png)
+:::
+::: {.timeline-content}
+**Feature based graph pruning**
+
+::: {.timeline-details .fragment .fade-out fragment-index=2}
+Designed, developed, and tested the graph pruning technique.
+:::
+::: {.timeline-date}
+Mar 2024
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=2}
+
+::: {.timeline-icon}
+![](resources/dice.png)
+:::
+::: {.timeline-content}
+**Refined design of distributional vectors**
+
+::: {.timeline-details .fragment .fade-out fragment-index=3}
+Formalised the design of vectorised operations on distributions, including consistent recycling rules for univariate and multivariate distributions.
+
+:::
+::: {.timeline-date}
+May 2024
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=3}
+
+::: {.timeline-icon}
+![](resources/map.png)
+:::
+::: {.timeline-content}
+**R/Medicine, ISF, F4SG, useR!**
+
+::: {.timeline-details .fragment .fade-out fragment-index=4}
+R/Medicine, F4SG, useR! fable workshops.
+
+ISF presentation on graph pruning.
+
+useR! presentation on distributional.
+:::
+::: {.timeline-date}
+Jun-Jul 2024
+:::
+:::
+:::
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=4}
+::: {.timeline-icon}
+![](resources/chart.png)
+:::
+::: {.timeline-content}
+**Designing mixtime and ggtime**
+
+::: {.timeline-details .fragment .fade-out fragment-index=5}
+Design and experimentation of mixtime and ggtime packages.
+
+:::
+::: {.timeline-date}
+Oct 2024
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=5}
+::: {.timeline-icon}
+![](resources/art.png)
+:::
+::: {.timeline-content}
+**Presentation to ggextenders group**
+
+::: {.timeline-details .fragment .fade-out fragment-index=6}
+Presented the design of ggtime to ggplot2 extension developers for discussion and review.
+:::
+::: {.timeline-date}
+Feb 2025
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=6}
+::: {.timeline-icon}
+![](resources/monash.png)
+:::
+::: {.timeline-content}
+**Mid-candidature review and presentation**
+
+::: {.timeline-details}
+
+:::
+::: {.timeline-date}
+Feb 2025
+:::
+:::
+:::
+
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-right}
+
+
+## {.fragment-remove}
+
+### PhD timeline (2025)
+
+::: columns
+::: {.column width="60%"}
+
+::: {.container}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/memo.png)
+:::
+::: {.timeline-content}
+**Graph pruning and distribution papers**
+
+::: {.timeline-details .fragment .fade-out fragment-index=2}
+
+Write, write, and write more...
+
+:::
+::: {.timeline-date}
+Apr 2025
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=2}
+::: {.timeline-icon}
+![](resources/clock.png)
+:::
+::: {.timeline-content}
+**Mixed temporal granularity vectors**
+  
+::: {.timeline-details .fragment .fade-out fragment-index=3}
+Implementation of mixtime for vectors of time of different calendars.
+:::
+::: {.timeline-date}
+May 2025
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=3}
+::: {.timeline-icon}
+![](resources/art.png)
+:::
+::: {.timeline-content}
+**Grammar of temporal graphics**
+  
+::: {.timeline-details .fragment .fade-out fragment-index=4}
+Implementation of ggtime, which extends ggplot2 to support mixtime vectors and advanced temporal visualisations.
+:::
+::: {.timeline-date}
+Jun 2025
+:::
+:::
+:::
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=4}
+::: {.timeline-icon}
+![](resources/iif.png)
+:::
+::: {.timeline-content}
+**IIF workshop on forecasting OSS**
+
+::: {.timeline-details .fragment .fade-out fragment-index=5}
+General chair, and presenting about recent fabletools developments relating to graph reconciliation.
+:::
+::: {.timeline-date}
+Jun 2025
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=5}
+::: {.timeline-icon}
+![](resources/map.png)
+:::
+::: {.timeline-content}
+**ISF, useR!, JSM presentations**
+
+::: {.timeline-details .fragment .fade-out fragment-index=6}
+About mixtime and ggtime for exploratory time series data analysis.
+:::
+::: {.timeline-date}
+Jul-Aug 2025
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=6}
+::: {.timeline-icon}
+![](resources/memo.png)
+:::
+::: {.timeline-content}
+**Write grammar of temporal graphics paper**
+
+::: {.timeline-details}
+
+:::
+::: {.timeline-date}
+Nov 2025
+:::
+:::
+:::
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-right}
+
+## {.fragment-remove}
+
+### PhD timeline (2026)
+
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "December 2025", "Theory development", "75%", -->
+  <!-- "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Software development", "60%*", -->
+  <!-- # "Topic 5: Probabilistic forecasting at scale using tidy data structures", "March 2026", "Paper submission", "0%", -->
+  <!-- "PhD Milestones", "February 2024", "Confirmation", "100%", -->
+  <!-- "PhD Milestones", "February 2025", "Mid-candidature review", "0%", -->
+  <!-- "PhD Milestones", "February 2026", "Final review", "0%", -->
+
+::: columns
+::: {.column width="60%"}
+
+::: {.container}
+::: {.timeline .timeline-left style="height: 720px;"}
+
+::: {.timeline-block}
+::: {.timeline-icon}
+![](resources/monash.png)
+:::
+::: {.timeline-content}
+**Final review and presentation**
+
+::: {.timeline-details .fragment .fade-out fragment-index=2}
+Final stretch, where hopefully I present mixtime and ggtime to you all!
+:::
+::: {.timeline-date}
+Feb 2026
+:::
+:::
+:::
+
+
+
+::: {.timeline-block .fragment .fade-up fragment-index=2}
+::: {.timeline-icon}
+![](resources/memo.png)
+:::
+::: {.timeline-content}
+**Presentation at ACM CHI 2026**
+  
+::: {.timeline-details .fragment .fade-out fragment-index=3}
+Presentation about the grammar of temporal graphics.
+:::
+::: {.timeline-date}
+Apr 2026
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=3}
+::: {.timeline-icon}
+![](resources/memo.png)
+:::
+::: {.timeline-content}
+**Finish papers and assemble thesis**
+  
+::: {.timeline-details .fragment .fade-out fragment-index=4}
+More writing, adding the final touches.
+:::
+::: {.timeline-date}
+May 2026
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=4}
+::: {.timeline-icon}
+![](resources/iif.png)
+:::
+::: {.timeline-content}
+**Presentation at ISF 2026**
+
+::: {.timeline-details .fragment .fade-out fragment-index=5}
+Functional cross-temporal probabilistic forecast reconciliation at scale.
+:::
+::: {.timeline-date}
+Jul 2026
+:::
+:::
+:::
+
+::: {.timeline-block .fragment .fade-up fragment-index=5}
+::: {.timeline-icon}
+![](resources/monash.png)
+:::
+::: {.timeline-content}
+**Submit thesis :tada:**
+
+::: {.timeline-details}
+
+:::
+::: {.timeline-date}
+Aug 2026
+:::
+:::
+:::
+
+
+:::
+:::
+
+
+:::
+:::
+
+![](backgrounds/estee-janssens-zni0zgb3bkQ-unsplash.jpg){.image-right}
+
+
+## Thanks for your time!
+
+::: columns
+::: {.column width="60%"}
+
+::: {.callout-tip}
+## Final remarks
+
+* Graph pruning fundamentally improves coherent forecasting at scale.
+* Better time series tools with mixtime and ggtime will enable sub-daily temporal reconciliation and improved exploratory time series analysis.
+:::
+
+::: {.callout-link}
+
+## Useful links
+
+![](resources/forum.svg){.icon} [social.mitchelloharawild.com](https://social.mitchelloharawild.com/)
+
+![](resources/projector-screen-outline.svg){.icon} [slides.mitchelloharawild.com/phd-progress-review](https://slides.mitchelloharawild.com/phd-progress-review)
+
+![](resources/github.svg){.icon} [mitchelloharawild/phd-progress-review](https://github.com/mitchelloharawild/phd-progress-review)
+
+:::
+
+:::
+:::
+
+![](backgrounds/meric-dagli-7NBO76G5JsE-unsplash.jpg){.image-right}
+
+
+<!-- ## {} -->
+
+<!-- ::: columns -->
+<!-- ::: {.column width="40%"} -->
+<!-- ::: -->
+<!-- ::: {.column width="60%"} -->
+<!-- ### Visualising structured time series -->
+<!-- ::: -->
+<!-- ::: -->
+
+<!-- ![](backgrounds/yoksel-zok-aEMEMsBNqeo-unsplash.jpg){.image-left} -->
+
+
+<!-- ## Unsplash credits -->
+
+<!-- ::: {.callout-unsplash} -->
+
+<!-- ## Thanks to these Unsplash contributors for their photos -->
+
+<!-- ```{r unsplash} -->
+<!-- #| echo: false -->
+<!-- #| cache: true -->
+<!-- library(httr) -->
+<!-- library(purrr) -->
+<!-- unsplash_pattern <- ".*-(.{11})-unsplash\\.jpg$" -->
+<!-- images <- list.files("backgrounds/", pattern = unsplash_pattern) -->
+<!-- ids <- sub(unsplash_pattern, "\\1", images) -->
+
+<!-- get_unsplash_credit <- function(id) { -->
+<!--   unsplash_url <- "https://api.unsplash.com/"  -->
+<!--   my_response <- httr::GET(unsplash_url, path = c("photos", id), query = list(client_id=Sys.getenv("UNSPLASH_ACCESS"))) -->
+<!--   xml <- content(my_response) -->
+
+<!--   name <- xml$user$name` -->
+<!--   desc <- xml$description%||%"Photo" -->
+<!--   sprintf( -->
+<!--     "* %s: [%s%s](%s)", -->
+<!--     name, -->
+<!--     strtrim(desc,60-nchar(name)), -->
+<!--     if(nchar(desc)>(60-nchar(name))) "..." else "", -->
+<!--     modify_url("https://unsplash.com/", path = file.path("photos", xml$id)) -->
+<!--   ) -->
+<!-- } -->
+<!-- htmltools::includeMarkdown(paste0(map_chr(ids, get_unsplash_credit), collapse = "\n")) -->
+<!-- ``` -->
+
+<!-- ::: -->
+
+<!-- ## References -->
